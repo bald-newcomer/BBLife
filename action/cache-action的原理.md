@@ -28,16 +28,16 @@ steps:
 ### 官方actions的组合依赖
 ![alt text](image-1.png)
 
-如图可见，在cache插件中，同样引用了cache插件。cache插件本身引用了自己的历史版本，以一种组合依赖的方式，增强插件的使用。通过对依赖工具的检索，如图4.0.5对应的插件并非来源于action组下，而是来自于[actions/toolkit/cache]([https://](https://github.com/actions/toolkit/tree/main/packages/cache))。
+如图可见，在cache插件中，同样引用了cache插件。cache插件本身引用了自己的历史版本，以一种组合依赖的方式，增强插件的使用。通过对依赖工具的检索，上图版本号4.0.5对应的插件并非来源于action组下，而是来自于[actions/toolkit/cache]([https://](https://github.com/actions/toolkit/tree/main/packages/cache))。
 
-使用这种组合机制，将核心实现放在独立的代码仓中。其他开发者可以调用核心toolkit/cache来实现自己的缓存组件。当然也可以调用actions/cache直接使用已经增强的缓存组件(推荐)。
+使用这种组合依赖，将核心实现放在独立的代码仓中。其他开发者可以调用核心toolkit/cache来实现自己的缓存组件。也可以直接调用actions/cache这个增强的缓存action(推荐)。
 
 action/caches的实现很简单，基于toolkit实现了restore和save方法，此处介绍2个属性：
 * restore-keys：支持缓存的模糊匹配，有时候不一定需要获取到最精确的缓存。
 * lookup-only：只检查缓存，不下载，可以通过cache-hit发现是否命中。
 
 ### 在toolkit中的缓存实现
-可以很直观的发现，该缓存实现是以远端缓存的方式实现，服务端暂且不表，客户端缓存主要分为restoreCache、saveCache
+可以很直观的发现，该缓存实现是以远端缓存的方式实现，服务端暂且不表，客户端缓存核心方法主要分为restoreCache、saveCache
 #### restoreCache
 1. 初始化配置与校验，基于配置可以看到远端缓存使用的是Azure Blob Storage。
 2. 查询缓存条目，主要提前确认缓存情况，并且获取到ABS的临时下载链接。
@@ -49,15 +49,15 @@ action/caches的实现很简单，基于toolkit实现了restore和save方法，�
 3. 预约缓存条目
    * 生成key和version
    * 调用服务端，告诉服务器我要存一个缓存，键是key，版本是version
-   * 服务端会返回一个临时的缓存上传链接，若存在键值冲突(缓存被使用)，则会抛出异常。
-4. 上传缓存文件
-5. 最终确认，为保证原子性，此处会告知服务器缓存已经上传完成。并激活缓存。
+   * 服务端会返回一个临时的缓存上传链接，若存在键值冲突(缓存被使用)，则会抛出异常。即使不冲突，依然会生成新的version
+4. 上传缓存文件，分块上传
+5. 最终确认，为保证原子性，此处会告知服务器缓存已经上传完成。并激活缓存，更新version为当前。
 6. 异常处理、tar包清理。
 
 ### 远端缓存保存的优劣点
 1. 远端缓存的时效性会低于本地盘缓存、共享盘缓存。
 2. 远端缓存只能并发restore，而save动作需要保证原子性，因此部分并发任务的save会被丢失
 3. 远端缓存和环境解耦，不依赖客户端底层环境，例如是否挂载共享盘等。
-4. 在允许的情况下，远端缓存可以跨架构共享。
+4. 在业务场景允许的情况下，远端缓存可以跨架构(ARM/X86)共享。
 5. 用户用量可控制、可观测、可收费。
 6. 开发体验好，可维护性好。
