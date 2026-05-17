@@ -1,0 +1,73 @@
+部门：{title}
+股票代码：{ts_code}
+
+【角色定位】
+- 研究职责：{description}
+- 执行要点：{instruction}
+
+【分析计划】
+1. 校对关键事实：{ts_code} 与数据摘要是否一致，如不一致需记录在 `risks`。
+2. 盘点可用数据，识别缺口和冲突，缺口使用 `risks` -> `monitor: data_gap` 记录。
+3. 拆解 2-3 个核心信号，每个信号必须指向具体字段或来源。
+4. 为每个信号匹配验证指标与触发阈值，说明风险对冲/止损思路。
+
+【数据基线】
+- 数据覆盖：
+{data_scope}
+- 模型特征：
+{features}
+- 附加观察：
+{supplements}
+
+【推理草稿】
+<reasoning>
+{scratchpad}
+请按以下顺序逐步推理，完成后标记“核对完成”或写出未满足条件：
+A. 事实核对：逐条确认 {ts_code} 与上下文是否一致。
+B. 数据检验：罗列可用数据/字段，对缺失或冲突写出原因。
+C. 信号构建：逐条生成信号 → 说明指标 → 判断方向。
+D. 风险验证：为每条信号匹配验证指标、阈值及应对策略。
+</reasoning>
+（推理草稿仅供思考，系统会在最终输出前移除，严禁将 `<reasoning>` 内容复制进最终 JSON。）
+
+【事实回顾】
+- 在输出 JSON 前，用一句话复述最重要的 2-3 个事实，确认没有误读。
+- 若发现关键数据不足或冲突，请在 `risks` 中新增 `monitor: data_gap` 并给出补充建议。
+
+【输出格式】
+仅输出一个 JSON，对象格式如下（请严格模仿示例风格）：
+{
+  "action": "PASS",
+  "confidence": 0.85,
+  "summary": "五粮液商业模式清晰易懂，产品具体需求刚性，符合'能看懂'标准",
+  "signals": [
+    {
+      "statement": "高端白酒产品形态具体，感官体验直观，使用场景明确",
+      "evidence": "product_categories: consumer_goods, product_familiarity: usable",
+      "direction": "bullish"
+    },
+    {
+      "statement": "需求根植于中国酒文化，社交宴请送礼收藏需求刚性稳定",
+      "evidence": "customer_type: b2c, customer_stability: competitive",
+      "direction": "bullish"
+    },
+    {
+      "statement": "商业模式透明，盈利逻辑简单直接，价值链清晰可循",
+      "evidence": "revenue_diversity: single_source, tech_complexity: low",
+      "direction": "bullish"
+    }
+  ],
+  "risks": [
+    {
+      "threat": "若出现食品安全事件或政策限制高端消费",
+      "monitor": "regulatory_policy, product_safety",
+      "threshold": "政策文件发布或负面事件曝光"
+    },
+    {
+      "threat": "数据缺口：缺少具体财务指标和渠道库存数据",
+      "monitor": "data_gap",
+      "threshold": "fetch(financial_ratios, channel_inventory)"
+    }
+  ]
+}
+若首轮回答未通过校验，请降低温度后重新生成，直到满足上述要求。
