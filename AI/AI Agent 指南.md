@@ -2,32 +2,24 @@
 
 在opencode中，主要通过**init初始化**、**内置检索工具**、**深度代码理解**等能力来实现代码及上下文理解
 
-## 内置SKILL命令
+## 本地代码搜索与理解
 
-### /init
+### 项目初始化理解（init）
 
 执行/init命令,基于grep获取代码仓的核心文件，分析当前代码库并生成一份 AGENTS.md 文件
 
-### 内置检索tools
+### 内置检索tools(src/tool/*)
 
-* glob src/tool/glob.ts 文件名匹配搜索
-
-* grep src/tool/grep.ts 文件内容正则搜索
-
-* read src/tool/read.ts 读取文件内容
-
-* codesearch src/tool/codesearch.ts 基于exa mcp的外部代码搜索
+glob、grep、read、codesearch
 
 ### 增强型工具 [Graphify](https://github.com/safishamsi/graphify/blob/v7/docs/translations/README.zh-CN.md)
 
-为 opencode等助手扩展SKILL能力，输入 '/graphify' . 即可为文件夹构建图谱
-
-增强型理解处理流程：
+Graphify是三方插件，安装后输入 '/graphify' . 即可生成对应代码图谱
 
 1. 基础层：AST 提取提供确定性的结构信息（tree-sitter）
-2. 增强层：LLM 语义提取增加深度理解：采用SKILL从代码注释和命名推断隐式关系等
-3. 分析层：社区检测（Leiden）和图分析，将生成的关系进行社区分析并转储为图
-4. 输出层：结构化图数据和可读报告
+2. 增强层：LLM 语义提取增加深度理解：采用SKILL从代码注释和命名推断隐式关系，并生成图关系
+3. 分析层：通过 Leiden 进行社区分析，计算内聚度。通过图分析生成god nodes、惊喜评分
+4. 输出层：生成报告
 
 ## 深度代码理解
 
@@ -35,16 +27,9 @@
 
 ### 云端代码索引架构设计
 
-在插件中可以授权云端获取自己的代码仓，生成云端索引
-
-云端索引基于个人改动分支增量索引与更新
+在插件中可以授权云端获取自己的代码仓，生成云端索引，云端索引基于个人改动分支增量索引与更新
 
 ![img.png](img.png)
-
-* CSS Code Semantic Search（代码语义搜索库） 存储代码的向量表示，支持语义搜索
-* GES Graph Engine Service（图引擎服务） 存储代码的调用关系图，支持依赖分析
-* AST (抽象语法树)：理解单个文件内的代码结构。
-* CPG (代码属性图)：融合多种图结构，进行更深层的代码分析。
 
 | 插件名称     | 输入          | 输出         | 示例                                 |
 |----------|-------------|------------|------------------------------------|
@@ -55,7 +40,12 @@
 | 图谱构建插件   | 代码切片 + 调用关系 | 图节点 + 边    | Function A -> calls -> Function B  |
 | 索引入库插件   | 向量 + 图数据    | 写入 CSS/GES | 批量写入数据库                            |
 
-### 实用开源工具
+* AST (抽象语法树)：理解单个文件内的代码结构。
+* CPG (代码属性图)：融合多种图结构，进行更深层的代码分析。
+* CSS Code Semantic Search（代码语义搜索库） 存储代码的向量表示，支持语义搜索
+* GES Graph Engine Service（图引擎服务） 存储代码的调用关系图，支持依赖分析
+
+### 开源工具
 
 [ContextPlus](https://github.com/ForLoopCodes/contextplus)：将代码库转化为可搜索、层次化的“功能图谱”，以帮助 AI 理解代码
 
@@ -65,112 +55,82 @@
 
 可通过语言服务协议获取符号与引用信息，提升代码仓理解与定位能力(代码导航、代码补全、代码重构和格式化、语义理解和诊断)
 
-#### 常见语言服务器
+相比于ContextPlus的代码理解的功能增强，LSP更专注于类IDE的代码补全和提示，结合大模型提供代码续写等能力
 
-| 语言                      | 推荐的语言服务器                        | 启动命令                                 |
-|:------------------------|:--------------------------------|:-------------------------------------|
-| Python                  | `pyright` (微软) 或 `basedpyright` | `pyright-langserver --stdio`         |
-| TypeScript / JavaScript | `typescript-language-server`    | `typescript-language-server --stdio` |
-| Java                    | `jdtls` (Eclipse)               | `java -jar jdtls.jar`                |
-| Go                      | `gopls`                         | `gopls serve`                        |
-| Rust                    | `rust-analyzer`                 | `rust-analyzer`                      |
-| C / C++                 | `clangd`                        | `clangd`                             |
+常见语言服务器：
 
-#### LSP客户端
+| 语言      | 推荐的语言服务器                     | 启动命令                                 |
+|:--------|:-----------------------------|:-------------------------------------|
+| Python  | `pyright`                    | `pyright-langserver --stdio`         |
+| TS/JS   | `typescript-language-server` | `typescript-language-server --stdio` |
+| Java    | `jdtls` (Eclipse)            | `java -jar jdtls.jar`                |
+| Go      | `gopls`                      | `gopls serve`                        |
+| Rust    | `rust-analyzer`              | `rust-analyzer`                      |
+| C / C++ | `clangd`                     | `clangd`                             |
+
+常见LSP客户端客户端：
 
 * Python: pygls（实现 LSP 服务器）、python-lsp-jsonrpc（客户端）
 * Node.js: vscode-languageserver-node（官方库）
 
-### opencode-autognosis(已废弃)
+## RAG Service
 
-* 深层代码理解：记忆块、分层推理 、模块摘要
-* 智能工作记忆：任务最相关 Chunk Cards 放入ActiveSet,AI在进行思考和生成代码时，聚焦于 ActiveSet
-* 性能优化 (Performance)：增量式重新索引、后台处理、内存优化
-* 生产级体验 (Production Polish)：监控与指标、操作界面、工具参考集
+检索增强生成（RAG）系统，负责信息检索的两个关键阶段：初筛和精排。
 
-#### 生态、社区活跃度、性能问题
+核心接口：/embedding、/rerank
 
-* 高度依赖四个独立的底层工具：ripgrep、fd、ast-grep、universal-ctags
-* 配置与调试成本高、开源组件异常根源排查困难
-* 社区活跃度低、CPU、内存资源占用增加、Token 消耗激增
+/embedding 这个接口用于生成文档的向量（建库时）和查询的向量（检索时），然后通过向量相似度搜索来实现文档召回。
 
-codebase-graph
-通过符号索引、AST分析、层级推理，构建代码的静态“知识图谱”，让AI理解项目结构和依赖。
+### 一个典型的RAG请求流程
 
-RAG能力
-opencode-autognosis (ActiveSet, 分块)
-opencode-enhancer-plugin (Librarian)
-自建LangChain集成
-动态地从代码库或文档中检索最相关的信息片段（Chunk Cards），作为上下文供AI生成答案，实现“检索增强”。
-高级编排
-opencode-mad 协调多个具有不同角色和权限的AI智能体，并行处理复杂任务，如全栈应用开发。
-外部集成
-MCP工具 (gatekpr-opencode)
-GitHub Actions (/opencode指令)
-通过标准协议接入外部文档系统，或在CI/CD流程中自动调用OpenCode完成任务
+1. 初始化，调用 /embedding 接口，将文本数据向量化，并保存至向量数据库（vector_db）
 
-opencode 不做传统 RAG（向量检索），而是用工具 + Subagent模式来理解代码库：
+2. 用户问：“公司的年假制度是什么？”
 
-2. Explore Agent（子代理）
-   src/agent/agent.ts:131-157 定义了 explore agent：
+3. 调用 /embedding 接口，将这个问题转化为向量。用这个向量去向量数据库（vector_db）检索，快速找回N个可能相关的文档块。
 
-"explore agent": 快速搜索代码库的专用代理
+4. 调用 /rerank 接口，传入用户问题“公司的年假制度是什么？”和第3步找回的文档块。/rerank 接口返回一个精排后的结果，其中前3个文档非常精准地解释了年假制度。
 
-- 权限: 只允许 grep, glob, list, read, bash, webfetch, websearch, codesearch
-- 任务: 找文件、搜代码、回答代码库问题
+5. 你将这3个文档作为上下文，连同用户问题一起发送给大语言模型（如GPT-4）。大语言模型根据这些高质量的上下文，生成最终精准、可靠的答案。
 
-3. 工作流（Plan Mode）
-   src/session/prompt.ts:1428-1437：
+### embedding（嵌入）的过程
 
-Phase 1: 并行启动最多 3 个 explore agent 搜索代码库
-Phase 2: 启动 general agent 设计实现
-Phase 3: 审阅
-Phase 4: 写最终计划
-总结
-opencode 用 ripgrep 实时搜索 + LLM Agent 协作 代替传统 RAG 向量索引，更灵活但无持久化索引。
+embedding就是把离散的文本（词、句子）嵌入到一个连续的向量空间中，每个点代表一个词/句，意思越近的词，在空间里离得越近
 
+使用pytorch生成张量（Tensor）数据结构，进行神经网络构建（torch.nn）与调用
 
+1. 输入: "今天天气真好"
+2. 分词（tokenizer）："今天天气真好" → ["今天", "天气", "真好"]，
+   每个token对应一个数字ID: ["今天", "天气", "真好"] → [1234, 5678, 9012]
+3. 添加特殊标记并填充: [CLS] + [1234, 5678, 9012] + [SEP] + [PAD]...
+4. 转成张量并送入模型
+   torch.tensor([101, 1234, 5678, 9012, 102, 0, 0, ...])
+   调用 nn.Module，将张量token向量化
+5. 模型输出：模型输出也是一个张量，比如形状 (1, 128, 768)
+    * 1：1 条文本
+    * 128：序列长度（128 个 token 位置）
+    * 768：每个位置的隐藏状态（768 维向量）
+6. 提取出最终向量: 模型输出的是每个 token 位置都有一个 768 维向量。我们需要把整个句子的信息浓缩成一个向量。
+7. 输出：[0.12, -0.34, 0.56, 0.78, -0.91, ...]  # 一共768个小数
 
------------------------------- 
-https://codehub-g.huawei.com/applicationplatform/cloudbuild/cloudbuild-openAPI/merge_requests/114
+```text
+输入文本: "猫坐在垫子上"
 
-https://codehub-g.huawei.com/applicationplatform/CloudBuild2.0/CloudBuild/BuildProject/merge_requests/96
+分词后:   ["猫", "坐", "在", "垫子", "上"]
 
-构建工具推送，需要建立流水线，先考虑搭建在公网的流水线
+模型编码后:
 
-按照以下规则调整
+猫    → [0.2, 0.5, -0.1, 0.8, ...]
+坐    → [0.3, 0.4, -0.2, 0.7, ...]
+在    → [0.1, 0.6, -0.3, 0.9, ...]
+垫子  → [0.4, 0.3, -0.4, 0.6, ...]
+上    → [0.2, 0.5, -0.2, 0.8, ...]
 
-1. 识别用户需要的jdk版本列表
-2. 从https://api.adoptium.net/v3/assets/version/ 接口获取到对应jdk发行版本的信息
-3. 按照一下格式输出json文件
+池化后（取平均）:
 
-```json
-[
-  {
-    "version": "3.14.3",
-    "stable": true,
-    "release_url": "https: //github.com/actions/python-versions/releases/tag/3.14.3-21673711214",
-    "files": [
-      {
-        "filename": "python-3.14.3-linux-22.04-arm64.tar.gz",
-        "arch": "arm64",
-        "platform": "linux",
-        "platform_version": "22.04",
-        "download_url": "https: //github.com/actions/python-versions/releases/download/3.14.3-21673711214/python-3.14.3-linux-22.04-arm64.tar.gz"
-      },
-      {
-        "filename": "python-3.14.3-linux-22.04-x64.tar.gz",
-        "arch": "x64",
-        "platform": "linux",
-        "platform_version": "22.04",
-        "download_url": "https: //github.com/actions/python-versions/releases/download/3.14.3-21673711214/python-3.14.3-linux-22.04-x64.tar.gz"
-      }
-    ]
-  }
-]
+"猫坐在垫子上" → [0.24, 0.46, -0.24, 0.76, ...]
+                 ↑ 一个768维的向量，代表整个句子
 ```
-
-devrepo.devcloud.br-iaas-icsl1.huaweicloud.com
 
 # AI调用过程的可观测性
 
@@ -406,31 +366,53 @@ retry
  └─(abort/fatal)→ idle
 ```
 
-# opencode的checkpoint的回滚机制
+### opencode 埋点和触发源码分析
 
-## 触发回滚的时机
+1. 事件发生点（代码各处 Bus.publish调用）
 
-* 用户点击消息右下角的菜单按钮，选择 "Revert" 时调用
-* 快捷键 Undo (index.tsx:517-521)
-* 用户按下 messages_redo 快捷键（默认为 Ctrl+Shift+R）时调用，重做到下一个用户消息
+    * tool/write.ts:47 → Bus.publish(File.Event.Edited, {...})
 
-## session回退
+    * session/tool-delta.ts:39 → Bus.publish(MessageV2.Event.PartUpdated)
 
-packages/opencode/src/session/revert.ts
+    * server/routes/session.ts:853 → Bus.publish(Session.Event.Error, ...)
+2. Bus.publish() 发布事件 （ bus/index.ts:83-98 ）
+3. 插件订阅并响应（plugin / index.ts:267 - 276）
 
-* revert(): 在回退前先创建快照，保存到 session.revert.snapshot
+    ```shell
+    bus.subscribeAll().pipe(
+        Stream.runForEach((input) =>
+            for (const hook of hooks) {
+                hook["event"]?.({event: input})  ← 遍历调用每个插件的
+                event
+            }
+        ) 
+    )
+    ```
 
-* unrevert(): 恢复到保存的快照，撤销回退操作
+4. 埋点插件被触发，按照event.type消费并处理各事件动作
 
-## 快照恢复
+  ```shell
+  event: async ({ event }) => {                    
+      if (event.type === "message.updated" && ...) {
+        // 处理 agent_start 埋点                         
+      }                                              
+  }
+  ```
 
-packages/opencode/src/snapshot/index.ts
+## 列举的几个埋点时机
 
-* 利用 Git 的 write-tree 创建快照，存储在独立的 .opencode 目录中。
-
-* 使用 git read-tree + git checkout-index 恢复整个工作区。
-
-* 使用 git checkout 从指定 hash 恢复单个文件。
+* custom-agent-start： Agent 启动
+* custom-agent-finish： Agent 完成
+* custom-llm-timing： LLM 调用耗时
+* custom-llm-response： LLM 响应内容
+* custom-llm-error： LLM 调用错误
+* repeat-exception： LLM 重复调用异常
+* custom-tool-timing： 工具执行耗时
+* custom-session-error： 会话异常
+* custom-session-finish： 会话结束
+* custom-user-approval： 用户审批结果
+* custom-rule-call： 规则调用
+* custom-chat-compression：会话压缩
 
 ## opencode的一些特性
 
@@ -441,3 +423,80 @@ packages/opencode/src/snapshot/index.ts
 * id：工具名字
 * init：定义的初始化方法，在register.tools中会调用init初始化工具
 * execute：在AgentCommand中，会调用tool.execute做实际工具执行
+
+# 上下文管理与 Token 控制
+
+## Claude中的Token管理技巧
+
+1. /clear。上下文清理，由于 Claude 会在每条新消息中重新发送整个对话历史，长对话会成倍增加输入 token 成本。
+
+2. 使用 .claudeignore：防止 AI 读取大型文件、构建产物或依赖文件夹，这些内容会迅速占满上下文。
+
+3. 模型选择：日常任务默认使用 Claude 3.5 Sonnet；仅将 Opus 留给高复杂度任务，以节省单位 token 成本。
+
+4. 提示词精准：具体、简洁的提示词可减少用于澄清的来回循环。
+
+5. /compact：定期压缩对话历史，以降低其 token 占用量。
+
+## token用量监控
+
+1. 监控使用量：使用 Claude 使用量与成本 API 追踪 token 消耗，识别高成本的开发者。
+
+2. 状态栏工具：实现自定义状态栏，在终端内实时监控 token 开销。
+
+3. 管理 Agent 倍数：注意，使用多个并行 agent 相比单 agent 会话，可能使 token 使用量增加 7 倍以上。
+
+## checkpoint的回滚机制
+
+### 触发回滚的时机
+
+* 用户点击消息右下角的菜单按钮，选择 "revert" 时调用
+* 快捷键 Undo (index.tsx:517-521)
+* 用户按下 messages_redo 快捷键（默认为 Ctrl+Shift+R）时调用，重做到下一个用户消息
+
+### session回退
+
+packages/opencode/src/session/revert.ts
+
+* revert(): session运行会保存快照，保存到 session.revert.snapshot中。触发回退会按照保存的快照回退。
+
+* unrevert(): 恢复到保存的快照，撤销回退操作。
+
+### 项目快照恢复（git write-tree）
+
+packages/opencode/src/snapshot/index.ts
+
+* 利用 Git 的 write-tree 创建快照，存储在独立的 .opencode 目录中。
+
+* 使用 git read-tree + git checkout-index 恢复整个工作区。
+
+* 使用 git checkout 从指定 hash 恢复单个文件。
+
+---------- inging
+
+# opencode（AgentKernel） 二次开发的特性需求记录
+
+AgentKernel为CLI、AI IDE、IDE插件和云端等场景提供归一化AgentService，基于opencode框架，满足多种研发智能体场景需要
+
+1. 由AgentKernel统一提供多场景共用的Agent/SubAgent和内置工具；
+2. 灵活扩展、支持Skill、MCP接入；
+3. 内置TurboContext和本地Codebase、memory等能力。
+
+## 开发指南
+
+| 规则	     | 说明                                                      |
+|---------|---------------------------------------------------------|
+| SDK生成命令 | 	更新了 JS/Python/Java SDK 的生成脚本路径                         |
+| 代码隔离    | 	新功能必须开发在 packages/opencode/src/custom-hw/ 目录下          |
+| 注释规范    | 	修改现有代码必须使用 // #region custom / // #endregion custom 标注 |
+| 插件优先    | 	新功能优先开发为插件，只有插件不可行才修改源码                                |
+| 向后兼容    | 	修改接口时必须保证向后兼容                                          |
+
+## 具体特性规则
+
+1. 安全：黑名单沙箱运行（子进程运行，限制只对工作目录存在读写权限，默认不开启）
+2. digital-avatar 支持数字分身
+3. 新增telemetry埋点插件，优化AI调用过程的可观测性
+
+
+  
