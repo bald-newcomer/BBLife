@@ -8,9 +8,9 @@
 
 执行/init命令,基于grep获取代码仓的核心文件，分析当前代码库并生成一份 AGENTS.md 文件
 
-### 内置检索tools(src/tool/*)
+OMO提供/init-deep，给主要的包生成 AGENTS.md 文件
 
-glob、grep、read、codesearch
+内置检索工具：glob、grep、read、codesearch
 
 ### 增强型工具 [Graphify](https://github.com/safishamsi/graphify/blob/v7/docs/translations/README.zh-CN.md)
 
@@ -20,6 +20,15 @@ Graphify是三方插件，安装后输入 '/graphify' . 即可生成对应代码
 2. 增强层：LLM 语义提取增加深度理解：采用SKILL从代码注释和命名推断隐式关系，并生成图关系
 3. 分析层：通过 Leiden 进行社区分析，计算内聚度。通过图分析生成god nodes、惊喜评分
 4. 输出层：生成报告
+
+### 代码相似度检索
+
+代码相似度检索应作为codebase的基础能力之一，主要基于MinHash(**locality-sensitive hashing (LSH)**)实现
+
+1. 把每个代码块切分成 token（单词）集合 - FileChunk
+2. 用多个哈希函数产生签名（signature），优先加载云端索引，本地基于云端索引增量生成MinHash
+3. 模型或者用户查询时，将查询代码片段转为向量，返回top-K最相似的代码。
+4. 核心使用场景：代码重构、review、补全。
 
 ## 深度代码理解
 
@@ -73,7 +82,7 @@ Graphify是三方插件，安装后输入 '/graphify' . 即可生成对应代码
 * Python: pygls（实现 LSP 服务器）、python-lsp-jsonrpc（客户端）
 * Node.js: vscode-languageserver-node（官方库）
 
-## RAG Service
+## Embedding Service
 
 检索增强生成（RAG）系统，负责信息检索的两个关键阶段：初筛和精排。
 
@@ -472,11 +481,9 @@ packages/opencode/src/snapshot/index.ts
 
 * 使用 git checkout 从指定 hash 恢复单个文件。
 
----------- inging
+# opencode（Kernel） 
 
-# opencode（AgentKernel） 二次开发的特性需求记录
-
-AgentKernel为CLI、AI IDE、IDE插件和云端等场景提供归一化AgentService，基于opencode框架，满足多种研发智能体场景需要
+为CLI、AI IDE、IDE插件和云端等场景提供归一化AgentService，基于opencode框架，满足多种研发智能体场景需要
 
 1. 由AgentKernel统一提供多场景共用的Agent/SubAgent和内置工具；
 2. 灵活扩展、支持Skill、MCP接入；
@@ -495,7 +502,7 @@ AgentKernel为CLI、AI IDE、IDE插件和云端等场景提供归一化AgentServ
 ## 具体特性规则
 
 1. 安全：黑名单沙箱运行（子进程运行，限制只对工作目录存在读写权限，默认不开启）
-2. digital-avatar 支持数字分身
+2. 支持数字分身
 3. 新增telemetry埋点插件，优化AI调用过程的可观测性
 
 
