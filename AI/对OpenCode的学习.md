@@ -30,7 +30,6 @@ Hono 是为现代云端环境设计的“超轻量 Express”。快速启动、�
   * 把 app.fetch 交给 Bun.serve(...)
   * 包装 server.stop()，在停止时顺便取消 mDNS
 
-
 ## 项目启动
 opencode是前后端分离项目，服务端处理AI对话、工具执行，客户端处理页面展示
 ### 启动服务端
